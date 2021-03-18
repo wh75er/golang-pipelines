@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -57,6 +58,8 @@ func CombineResults(in, out chan interface{}) {
 	for i := range in {
 		results = append(results, i.(string))
 	}
+
+	sort.Strings(results)
 
 	result := strings.Join(results, "_")
 
