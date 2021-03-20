@@ -1,3 +1,3 @@
-module main
+module signer
 
 go 1.15
