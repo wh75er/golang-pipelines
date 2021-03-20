@@ -21,8 +21,8 @@ func SingleHash(in, out chan interface{})  {
 
 		c := make(chan string)
 		go func(m *sync.Mutex, data string, c chan<- string) {
-			defer m.Unlock()
 			m.Lock()
+			defer m.Unlock()
 
 			md5 := DataSignerMd5(data)
 			fmt.Println(data, " SingleHash md5(data) ", md5)
@@ -99,15 +99,7 @@ func ExecutePipeline(jobs ...job) {
 		go func (j job, in, out chan interface{}, wg *sync.WaitGroup) {
 			defer wg.Done()
 
-			var inWg sync.WaitGroup
-
-			inWg.Add(1)
-			go func(j job, in, out chan interface{}, inWg *sync.WaitGroup) {
-				defer inWg.Done()
-				j(in, out)
-			}(j, in, out, &inWg)
-
-			inWg.Wait()
+			j(in, out)
 
 			close(out)
 		}(j, in, out, &wg)
