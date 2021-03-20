@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func main() {
 	jobs := []job{
@@ -20,24 +22,6 @@ func main() {
 			fmt.Println("Result is: ", data)
 		}),
 	}
-
-//	jobs := []job{
-//		job(func(in, out chan interface{}) {
-//			fmt.Println("-1")
-//		}),
-//		job(func(in, out chan interface{}) {
-//			fmt.Println("-2")
-//		}),
-//		job(func(in, out chan interface{}) {
-//			fmt.Println("-3")
-//		}),
-//		job(func(in, out chan interface{}) {
-//			fmt.Println("-4")
-//		}),
-//		job(func(in, out chan interface{}) {
-//			fmt.Println("-5")
-//		}),
-//	}
 
 	ExecutePipeline(jobs...)
 }
