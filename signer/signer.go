@@ -13,19 +13,25 @@ import (
 func SingleHash(in, out chan interface{})  {
 	for inItem := range in {
 		rawData := inItem
+
 		data := strconv.Itoa(rawData.(int))
 		fmt.Println(data, " SingleHash data ", data)
 
-		md5 := DataSignerMd5(data)
-		fmt.Println(data, " SingleHash md5(data) ", md5)
+		c := make(chan string)
+		go func(data string, c chan<- string) {
+			md5 := DataSignerMd5(data)
+			fmt.Println(data, " SingleHash md5(data) ", md5)
 
-		md5Crc32 := DataSignerCrc32(md5)
-		fmt.Println(data, " SingleHash crc32(md5(data)) ", md5Crc32)
+			md5Crc32 := DataSignerCrc32(md5)
+			fmt.Println(data, " SingleHash crc32(md5(data)) ", md5Crc32)
+
+			c <- md5Crc32
+		}(data, c)
 
 		crc32 := DataSignerCrc32(data)
 		fmt.Println(data, " SingleHash crc32(data) ", crc32)
 
-		result := crc32 + "~" + md5Crc32
+		result := crc32 + "~" + <- c
 		fmt.Println(data, " SingleHash result ", result)
 
 		out <- result
@@ -34,19 +40,27 @@ func SingleHash(in, out chan interface{})  {
 
 func MultiHash(in, out chan interface{}) {
 	for inItem := range in {
-		data := inItem
+		rawData := inItem
 
-		var result string
+		data := rawData.(string)
+
+		results := make([]chan string, 6)
 
 		for th := 0; th < 6; th++ {
-			step := DataSignerCrc32(strconv.Itoa(th) + data.(string))
+			results[th] = make(chan string)
 
-			fmt.Println(data.(string), " MultiHash: crc32(th+step1) ", th, step)
+			go func(r []chan string, th int, data string) {
+				step := DataSignerCrc32(strconv.Itoa(th) + data)
 
-			result += step
+				fmt.Println(data, " MultiHash: crc32(th+step1) ", th, step)
+
+				r[th] <- step
+			}(results, th, data)
 		}
 
-		fmt.Println(data.(string), " MultiHash: result ", result)
+		result := <-results[0] + <-results[1] + <-results[2] + <-results[3] + <-results[4] + <-results[5]
+
+		fmt.Println(data, " MultiHash: result ", result)
 
 		out <- result
 	}
