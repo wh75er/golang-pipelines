@@ -11,6 +11,8 @@ import (
 // сюда писать код
 
 func SingleHash(in, out chan interface{})  {
+	m := &sync.Mutex{}
+
 	for inItem := range in {
 		rawData := inItem
 
@@ -18,7 +20,10 @@ func SingleHash(in, out chan interface{})  {
 		fmt.Println(data, " SingleHash data ", data)
 
 		c := make(chan string)
-		go func(data string, c chan<- string) {
+		go func(m *sync.Mutex, data string, c chan<- string) {
+			defer m.Unlock()
+			m.Lock()
+
 			md5 := DataSignerMd5(data)
 			fmt.Println(data, " SingleHash md5(data) ", md5)
 
@@ -26,7 +31,7 @@ func SingleHash(in, out chan interface{})  {
 			fmt.Println(data, " SingleHash crc32(md5(data)) ", md5Crc32)
 
 			c <- md5Crc32
-		}(data, c)
+		}(m, data, c)
 
 		crc32 := DataSignerCrc32(data)
 		fmt.Println(data, " SingleHash crc32(data) ", crc32)
