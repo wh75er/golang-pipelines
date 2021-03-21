@@ -31,6 +31,68 @@ func (s multiHashSlice) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
+func MultiHash(in, out chan interface{}) {
+	wg := &sync.WaitGroup{}
+
+	for inItem := range in {
+		wg.Add(1)
+		go getMultiHashes(inItem, out, wg)
+	}
+
+	wg.Wait()
+}
+
+func SingleHash(in, out chan interface{}) {
+	m := &sync.Mutex{}
+	wg := &sync.WaitGroup{}
+
+	for inItem := range in {
+		wg.Add(1)
+		go getSingleHash(m, inItem, out, wg)
+	}
+
+	wg.Wait()
+}
+
+func ExecutePipeline(jobs ...job) {
+	var in chan interface{}
+
+	var wg sync.WaitGroup
+
+	for _, j := range jobs {
+		out := make(chan interface{})
+
+		wg.Add(1)
+		go func(j job, in, out chan interface{}, wg *sync.WaitGroup) {
+			defer wg.Done()
+
+			j(in, out)
+
+			close(out)
+		}(j, in, out, &wg)
+
+		in = out
+	}
+
+	wg.Wait()
+}
+
+func CombineResults(in, out chan interface{}) {
+	results := make([]string, 0)
+
+	for i := range in {
+		results = append(results, i.(string))
+	}
+
+	sort.Strings(results)
+
+	result := strings.Join(results, "_")
+
+	fmt.Println("CombineResults", result)
+
+	out <- result
+}
+
 func getMd5Crc32(m *sync.Mutex, data string, c chan<- string) {
 	m.Lock()
 	md5 := DataSignerMd5(data)
@@ -60,18 +122,6 @@ func getSingleHash(m *sync.Mutex, inItem interface{}, out chan interface{}, wg *
 	fmt.Println(data, " SingleHash result ", result)
 
 	out <- result
-}
-
-func SingleHash(in, out chan interface{}) {
-	m := &sync.Mutex{}
-	wg := &sync.WaitGroup{}
-
-	for inItem := range in {
-		wg.Add(1)
-		go getSingleHash(m, inItem, out, wg)
-	}
-
-	wg.Wait()
 }
 
 func concatMultiHashes(r <-chan multiHashValue) string {
@@ -126,52 +176,3 @@ func getMultiHashes(inItem interface{}, out chan<- interface{}, wg *sync.WaitGro
 	out <- result
 }
 
-func MultiHash(in, out chan interface{}) {
-	wg := &sync.WaitGroup{}
-
-	for inItem := range in {
-		wg.Add(1)
-		go getMultiHashes(inItem, out, wg)
-	}
-
-	wg.Wait()
-}
-
-func CombineResults(in, out chan interface{}) {
-	results := make([]string, 0)
-
-	for i := range in {
-		results = append(results, i.(string))
-	}
-
-	sort.Strings(results)
-
-	result := strings.Join(results, "_")
-
-	fmt.Println("CombineResults", result)
-
-	out <- result
-}
-
-func ExecutePipeline(jobs ...job) {
-	var in chan interface{}
-
-	var wg sync.WaitGroup
-
-	for _, j := range jobs {
-		out := make(chan interface{})
-
-		wg.Add(1)
-		go func(j job, in, out chan interface{}, wg *sync.WaitGroup) {
-			defer wg.Done()
-
-			j(in, out)
-
-			close(out)
-		}(j, in, out, &wg)
-
-		in = out
-	}
-
-	wg.Wait()
-}
