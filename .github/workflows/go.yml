@@ -12,9 +12,6 @@ jobs:
         with:
           go-version: '^1.15' # The Go version to download (if necessary) and use.
 
-      - name: Build
-        run: cd signer && go build
-
       - name: Test Pipeline
         run: cd signer && go test -v
 
